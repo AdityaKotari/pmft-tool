@@ -43,3 +43,4 @@ pipeline/.pytest_cache/
 pipeline/.ruff_cache/
 pipeline/*.egg-info/
 pipeline/uv.lock
+__pycache__/

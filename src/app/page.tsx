@@ -1,7 +1,14 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  // This is a server component — we redirect to dashboard
-  // The dashboard page will check health and redirect to onboarding if needed
-  redirect("/dashboard");
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard");
+  }, [router]);
+
+  return null;
 }
