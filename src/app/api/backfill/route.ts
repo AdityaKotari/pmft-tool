@@ -1,6 +1,36 @@
 import { NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
+import fs from "fs";
+
+const PROJECT_ROOT = process.cwd();
+const PIPELINE_DIR = path.join(PROJECT_ROOT, "pipeline");
+const PYTHON_BIN = path.join(PIPELINE_DIR, ".venv", "bin", "python");
+
+function loadEnvFile(): Record<string, string> {
+  const envPath = path.join(PROJECT_ROOT, ".env");
+  const env: Record<string, string> = {};
+  try {
+    const content = fs.readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let value = trimmed.slice(eqIdx + 1).trim();
+      // Strip surrounding quotes
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      env[key] = value;
+    }
+  } catch {
+    // .env file not found — OK
+  }
+  return env;
+}
 
 export async function POST(req: Request) {
   let body: { from?: string; to?: string };
@@ -18,13 +48,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const pipelineDir = path.join(process.cwd(), "pipeline");
-  const pidFile = path.join(process.cwd(), "data", ".backfill-pid");
-  const fs = await import("fs/promises");
+  const pidFile = path.join(PROJECT_ROOT, "data", ".backfill-pid");
 
   // Check if a backfill is already running
   try {
-    const existingPid = await fs.readFile(pidFile, "utf-8");
+    const existingPid = fs.readFileSync(pidFile, "utf-8");
     try {
       process.kill(Number(existingPid), 0);
       return NextResponse.json(
@@ -32,21 +60,23 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     } catch {
-      await fs.unlink(pidFile).catch(() => {});
+      fs.unlinkSync(pidFile);
     }
   } catch {
     // No PID file — OK
   }
 
-  const dbPath =
-    process.env.FUNDRAISES_DB ||
-    path.join(process.cwd(), "data", "fundraises.db");
+  const dbPath = path.join(PROJECT_ROOT, "data", "fundraises.db");
+  const logFile = path.join(PROJECT_ROOT, "data", ".backfill-log");
+
+  // Load env from .env file manually
+  const dotEnv = loadEnvFile();
 
   const child = spawn(
-    "uv",
+    PYTHON_BIN,
     [
-      "run",
-      "fundscraper",
+      "-m",
+      "fundscraper.cli",
       "backfill",
       "--from",
       from,
@@ -55,29 +85,35 @@ export async function POST(req: Request) {
       "--json-progress",
     ],
     {
-      cwd: pipelineDir,
+      cwd: PIPELINE_DIR,
       env: {
-        ...process.env,
+        // Clean environment: only pass what's needed
+        PATH: process.env.PATH || "/usr/bin:/bin:/usr/local/bin",
+        HOME: process.env.HOME || "",
         FUNDRAISES_DB: dbPath,
-        EDGAR_IDENTITY: process.env.EDGAR_IDENTITY || "",
+        EDGAR_IDENTITY: dotEnv.EDGAR_IDENTITY || "",
       },
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
     }
   );
 
-  // Pipe stdout to a log file
-  const logFile = path.join(process.cwd(), "data", ".backfill-log");
-  const { createWriteStream } = await import("fs");
-  const logStream = createWriteStream(logFile, { flags: "w" });
+  const logStream = fs.createWriteStream(logFile, { flags: "w" });
   child.stdout?.pipe(logStream);
 
-  // Pipe stderr for debugging
   child.stderr?.on("data", (data: Buffer) => {
-    console.error(`[backfill stderr] ${data.toString()}`);
+    console.error(`[backfill stderr] ${data.toString().trim()}`);
   });
 
-  await fs.writeFile(pidFile, String(child.pid));
+  child.on("error", (err) => {
+    console.error("[backfill spawn error]", err);
+  });
+
+  child.on("exit", (code) => {
+    console.log(`[backfill] process exited with code ${code}`);
+  });
+
+  fs.writeFileSync(pidFile, String(child.pid));
 
   child.unref();
 
@@ -89,11 +125,10 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  const pidFile = path.join(process.cwd(), "data", ".backfill-pid");
-  const fs = await import("fs/promises");
+  const pidFile = path.join(PROJECT_ROOT, "data", ".backfill-pid");
 
   try {
-    const pid = await fs.readFile(pidFile, "utf-8");
+    const pid = fs.readFileSync(pidFile, "utf-8");
     try {
       process.kill(Number(pid), 0);
       return NextResponse.json({ status: "running" });

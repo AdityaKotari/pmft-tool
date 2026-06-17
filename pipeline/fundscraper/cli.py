@@ -294,3 +294,6 @@ def _export_deduped(
         writer.writeheader()
         writer.writerows(leads)
     typer.echo(f"Exported {len(leads)} companies to {output_path}")
+
+if __name__ == "__main__":
+    app()
