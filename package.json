@@ -6,15 +6,26 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:init": "cd pipeline && uv run fundscraper init-db",
+    "db:backfill": "cd pipeline && uv run fundscraper backfill",
+    "pipeline:setup": "cd pipeline && uv sync"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
+    "better-sqlite3": "^12.11.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.20.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-day-picker": "^9.14.0",
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

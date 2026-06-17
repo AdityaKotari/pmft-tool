@@ -1,0 +1,39 @@
+{
+  "accession_number": "0002137534-26-000001",
+  "cik": "2137534",
+  "company": "ACCESS Sole Miami, LLC",
+  "form": "D",
+  "filing_date": "2026-06-01",
+  "submission_type": "D",
+  "primary_issuer": {
+    "entity_name": "ACCESS Sole Miami, LLC",
+    "cik": "0002137534",
+    "entity_type": "Limited Liability Company",
+    "jurisdiction": "DELAWARE",
+    "year_of_incorporation": "2026"
+  },
+  "offering_data": {
+    "industry_group_type": "Pooled Investment Fund",
+    "is_pooled_investment": true,
+    "date_of_first_sale": "2026-05-18",
+    "minimum_investment": "200000",
+    "total_offering_amount": "4200000",
+    "total_amount_sold": "4200000",
+    "total_remaining": "0",
+    "total_already_invested": "8"
+  },
+  "related_persons": [
+    {
+      "first_name": "Anthony",
+      "last_name": "Christensen",
+      "city": "Louisville",
+      "state": "KY"
+    },
+    {
+      "first_name": ".",
+      "last_name": "ACCESS Real Estate, LLC",
+      "city": "Louisville",
+      "state": "KY"
+    }
+  ]
+}

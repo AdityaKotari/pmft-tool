@@ -1,14 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
 .pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
 # testing
 /coverage
@@ -28,14 +21,25 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# local env files (we commit .env, user overrides with .env.local)
+.env.local
+.env.*.local
 
-# vercel
-.vercel
+# data (DB files, not committed — user generates them)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.csv
+data/*.parquet
+data/.backfill-pid
+data/.backfill-log
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Python pipeline
+pipeline/__pycache__/
+pipeline/.venv/
+pipeline/.mypy_cache/
+pipeline/.pytest_cache/
+pipeline/.ruff_cache/
+pipeline/*.egg-info/
+pipeline/uv.lock

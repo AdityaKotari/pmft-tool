@@ -1,0 +1,45 @@
+{
+  "accession_number": "0001853938-26-000002",
+  "cik": "1853938",
+  "company": "555 Cypress Lake LP",
+  "form": "D",
+  "filing_date": "2026-06-01",
+  "submission_type": "D",
+  "primary_issuer": {
+    "entity_name": "555 Cypress Lake LP",
+    "cik": "0001853938",
+    "entity_type": "Limited Partnership",
+    "jurisdiction": "TEXAS",
+    "year_of_incorporation": "2021"
+  },
+  "offering_data": {
+    "industry_group_type": "Residential",
+    "is_pooled_investment": false,
+    "date_of_first_sale": "2026-04-16",
+    "minimum_investment": "10000",
+    "total_offering_amount": "3000000",
+    "total_amount_sold": "230958",
+    "total_remaining": "2769042",
+    "total_already_invested": "12"
+  },
+  "related_persons": [
+    {
+      "first_name": "Ajai",
+      "last_name": "Sharma",
+      "city": "Kingwood",
+      "state": "TX"
+    },
+    {
+      "first_name": "Michael",
+      "last_name": "Hardage",
+      "city": "Kingwood",
+      "state": "TX"
+    },
+    {
+      "first_name": "Tom",
+      "last_name": "Lafferty",
+      "city": "Kingwood",
+      "state": "TX"
+    }
+  ]
+}

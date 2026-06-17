@@ -1,0 +1,33 @@
+{
+  "accession_number": "0002017381-26-000001",
+  "cik": "2017381",
+  "company": "ARB Flagship Multi-Strategy Series",
+  "form": "D/A",
+  "filing_date": "2026-06-01",
+  "submission_type": "D/A",
+  "primary_issuer": {
+    "entity_name": "ARB Flagship Multi-Strategy Series",
+    "cik": "0002017381",
+    "entity_type": "Limited Liability Company",
+    "jurisdiction": "DELAWARE",
+    "year_of_incorporation": "2024"
+  },
+  "offering_data": {
+    "industry_group_type": "Pooled Investment Fund",
+    "is_pooled_investment": true,
+    "date_of_first_sale": "2024-04-08",
+    "minimum_investment": "250000",
+    "total_offering_amount": "Indefinite",
+    "total_amount_sold": "31871421",
+    "total_remaining": "Indefinite",
+    "total_already_invested": "25"
+  },
+  "related_persons": [
+    {
+      "first_name": "John",
+      "last_name": "Klimek",
+      "city": "Inverness",
+      "state": "IL"
+    }
+  ]
+}

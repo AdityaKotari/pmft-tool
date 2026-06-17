@@ -1,0 +1,210 @@
+import type { ColumnSchema, Preset } from "./types";
+
+export const COLUMNS: ColumnSchema[] = [
+  {
+    key: "company_name",
+    label: "Company",
+    type: "text",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "industry_group",
+    label: "Industry",
+    type: "enum",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "total_amount_sold",
+    label: "Amount Sold",
+    type: "number",
+    format: "currency",
+    sortable: true,
+    default_visible: true,
+    default_sort: "desc",
+  },
+  {
+    key: "total_offering_amount",
+    label: "Offering Target",
+    type: "number",
+    format: "currency",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "state",
+    label: "State",
+    type: "enum",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "date_filed",
+    label: "Filed",
+    type: "date",
+    format: "date",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "date_first_sale",
+    label: "First Sale",
+    type: "date",
+    format: "date",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "form_type",
+    label: "Form",
+    type: "enum",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "jurisdiction",
+    label: "Jurisdiction",
+    type: "enum",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "entity_type",
+    label: "Entity Type",
+    type: "enum",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "num_investors",
+    label: "Investors",
+    type: "number",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "min_investment",
+    label: "Min Investment",
+    type: "number",
+    format: "currency",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "primary_contact_name",
+    label: "Contact",
+    type: "text",
+    sortable: true,
+    default_visible: true,
+  },
+  {
+    key: "primary_contact_relationship",
+    label: "Contact Role",
+    type: "enum",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "contact_city",
+    label: "Contact City",
+    type: "text",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "contact_state",
+    label: "Contact State",
+    type: "enum",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "contact_is_board_level",
+    label: "Board Contact",
+    type: "boolean",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "is_likely_fund",
+    label: "Likely Fund",
+    type: "boolean",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "is_amendment",
+    label: "Amendment",
+    type: "boolean",
+    sortable: true,
+    default_visible: false,
+  },
+  {
+    key: "cik",
+    label: "CIK",
+    type: "text",
+    sortable: true,
+    default_visible: false,
+  },
+];
+
+export const PRESETS: Preset[] = [
+  {
+    id: "tech-startups",
+    name: "Tech Startups",
+    description: "Software, infrastructure, and telecom companies raising capital.",
+    default: true,
+    filters: {
+      industry_groups: ["Other Technology", "Computers", "Telecommunications"],
+      exclude_funds: true,
+    },
+  },
+  {
+    id: "biotech-pharma",
+    name: "Biotech & Pharma",
+    description: "Biotechnology and pharmaceutical companies.",
+    filters: {
+      industry_groups: ["Biotechnology", "Pharmaceuticals"],
+      exclude_funds: true,
+    },
+  },
+  {
+    id: "all-operating",
+    name: "All Operating Companies",
+    description: "Everything except pooled investment funds, REITs, and SPVs.",
+    filters: {
+      exclude_funds: true,
+    },
+  },
+  {
+    id: "everything",
+    name: "Everything",
+    description: "No filters. Includes funds, REITs, SPVs, and real estate.",
+    filters: {
+      exclude_funds: false,
+    },
+  },
+];
+
+export const COLUMN_TO_SQL_MAP: Record<string, string> = {
+  company_name: "f.company_name",
+  industry_group: "o.industry_group",
+  state: "rp.state",
+  form_type: "f.form_type",
+  jurisdiction: "o.jurisdiction",
+  entity_type: "o.entity_type",
+  primary_contact_relationship: "rp.relationship",
+  contact_state: "rp.state",
+};
+
+export const COLUMN_TO_TABLE_MAP: Record<string, string> = {
+  company_name: "filings f",
+  industry_group: "offerings o",
+  state: "related_persons rp",
+  form_type: "filings f",
+  jurisdiction: "offerings o",
+  entity_type: "offerings o",
+  primary_contact_relationship: "related_persons rp",
+  contact_state: "related_persons rp",
+};
