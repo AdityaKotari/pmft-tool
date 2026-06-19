@@ -6,6 +6,7 @@ import { DataTable } from "@/components/data-table";
 import { FilterPanel } from "@/components/filter-panel";
 import { PresetSelector } from "@/components/preset-selector";
 import { SummaryCards } from "@/components/summary-cards";
+import { BackfillPanel } from "@/components/backfill-panel";
 import { COLUMNS, PRESETS } from "@/lib/schema";
 import type { ColumnSchema, FilterSpec, Preset, HealthResponse, SchemaResponse } from "@/lib/types";
 
@@ -97,6 +98,7 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <BackfillPanel />
             <PresetSelector
               activeId={displayPresetId}
               onChange={handlePresetChange}

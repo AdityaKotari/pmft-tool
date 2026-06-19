@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import fs from "fs";
 
@@ -19,15 +19,16 @@ function loadEnvFile(): Record<string, string> {
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
       let value = trimmed.slice(eqIdx + 1).trim();
-      // Strip surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1);
       }
       env[key] = value;
     }
   } catch {
-    // .env file not found — OK
+    // .env not found — OK
   }
   return env;
 }
@@ -50,7 +51,6 @@ export async function POST(req: Request) {
 
   const pidFile = path.join(PROJECT_ROOT, "data", ".backfill-pid");
 
-  // Check if a backfill is already running
   try {
     const existingPid = fs.readFileSync(pidFile, "utf-8");
     try {
@@ -68,48 +68,46 @@ export async function POST(req: Request) {
 
   const dbPath = path.join(PROJECT_ROOT, "data", "fundraises.db");
   const logFile = path.join(PROJECT_ROOT, "data", ".backfill-log");
-
-  // Load env from .env file manually
   const dotEnv = loadEnvFile();
 
-  const child = spawn(
-    PYTHON_BIN,
-    [
-      "-m",
-      "fundscraper.cli",
-      "backfill",
-      "--from",
-      from,
-      "--to",
-      to,
-      "--json-progress",
-    ],
-    {
-      cwd: PIPELINE_DIR,
-      env: {
-        // Clean environment: only pass what's needed
-        PATH: process.env.PATH || "/usr/bin:/bin:/usr/local/bin",
-        HOME: process.env.HOME || "",
-        FUNDRAISES_DB: dbPath,
-        EDGAR_IDENTITY: dotEnv.EDGAR_IDENTITY || "",
-      },
-      detached: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    }
-  );
-
-  const logStream = fs.createWriteStream(logFile, { flags: "w" });
-  child.stdout?.pipe(logStream);
-
-  child.stderr?.on("data", (data: Buffer) => {
-    console.error(`[backfill stderr] ${data.toString().trim()}`);
+  const child: ChildProcess = spawn(PYTHON_BIN, [
+    "-m",
+    "fundscraper.cli",
+    "backfill",
+    "--from",
+    from,
+    "--to",
+    to,
+    "--json-progress",
+  ], {
+    cwd: PIPELINE_DIR,
+    env: {
+      PATH: process.env.PATH ?? "/usr/bin:/bin:/usr/local/bin",
+      HOME: process.env.HOME ?? "",
+      FUNDRAISES_DB: dbPath,
+      EDGAR_IDENTITY: dotEnv.EDGAR_IDENTITY ?? "",
+      NODE_ENV: process.env.NODE_ENV ?? "development",
+    },
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
-  child.on("error", (err) => {
+  const logStream = fs.createWriteStream(logFile, { flags: "w" });
+  if (child.stdout) {
+    child.stdout.pipe(logStream);
+  }
+
+  if (child.stderr) {
+    child.stderr.on("data", (data: Buffer) => {
+      console.error(`[backfill stderr] ${data.toString().trim()}`);
+    });
+  }
+
+  child.on("error", (err: Error) => {
     console.error("[backfill spawn error]", err);
   });
 
-  child.on("exit", (code) => {
+  child.on("exit", (code: number | null) => {
     console.log(`[backfill] process exited with code ${code}`);
   });
 
