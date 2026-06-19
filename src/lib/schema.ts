@@ -1,6 +1,13 @@
 import type { ColumnSchema, Preset } from "./types";
 
 export const COLUMNS: ColumnSchema[] = [
+    {
+    key: "signal",
+    label: "",
+    type: "text",
+    sortable: false,
+    default_visible: false,
+  },
   {
     key: "company_name",
     label: "Company",
@@ -37,7 +44,7 @@ export const COLUMNS: ColumnSchema[] = [
     label: "State",
     type: "enum",
     sortable: true,
-    default_visible: true,
+    default_visible: false,
   },
   {
     key: "date_filed",
@@ -152,8 +159,8 @@ export const COLUMNS: ColumnSchema[] = [
 export const PRESETS: Preset[] = [
   {
     id: "tech-startups",
-    name: "Tech Startups",
-    description: "Software, infrastructure, and telecom companies raising capital.",
+    name: "Technology",
+    description: "Software, infrastructure, and telecom companies.",
     default: true,
     filters: {
       industry_groups: ["Other Technology", "Computers", "Telecommunications"],

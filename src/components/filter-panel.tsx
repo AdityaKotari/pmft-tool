@@ -72,11 +72,13 @@ export function FilterPanel({ columns, filters, onChange }: FilterPanelProps) {
           )}
         </Button>
 
-        <BooleanFilter
-          label="Hide board contacts"
-          value={filters.hide_board_contacts ?? false}
-          onChange={(v) => set({ hide_board_contacts: v || undefined })}
-        />
+        <div title="Some filings list directors/officers instead of fundraising contacts">
+          <BooleanFilter
+            label="Exclude board-only contacts"
+            value={filters.hide_board_contacts ?? false}
+            onChange={(v) => set({ hide_board_contacts: v || undefined })}
+          />
+        </div>
 
         {activeCount > 0 && (
           <Button

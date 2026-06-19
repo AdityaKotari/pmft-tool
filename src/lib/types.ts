@@ -71,4 +71,9 @@ export interface SummaryResponse {
   operating_companies: number;
   avg_offering: number;
   total_raised: number;
+  median_raise: number;
+  amendments: number;
+  new_filings: number;
+  first_date: string | null;
+  last_date: string | null;
 }

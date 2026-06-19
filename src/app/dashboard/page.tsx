@@ -6,7 +6,9 @@ import { DataTable } from "@/components/data-table";
 import { FilterPanel } from "@/components/filter-panel";
 import { PresetSelector } from "@/components/preset-selector";
 import { SummaryCards } from "@/components/summary-cards";
+import { SignalBadge } from "@/components/signal-badge";
 import { BackfillPanel } from "@/components/backfill-panel";
+import { BackfillSubtitle } from "@/components/backfill-subtitle";
 import { COLUMNS, PRESETS } from "@/lib/schema";
 import type { ColumnSchema, FilterSpec, Preset, HealthResponse, SchemaResponse } from "@/lib/types";
 
@@ -93,9 +95,12 @@ export default function DashboardPage() {
       <header className="border-b">
         <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">
-              Fundraises
-            </h1>
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight">
+                Private Market Fundraising Signals
+              </h1>
+              <BackfillSubtitle />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <BackfillPanel />

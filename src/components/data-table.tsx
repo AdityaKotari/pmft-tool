@@ -12,6 +12,7 @@ import {
 import { ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SignalBadge } from "@/components/signal-badge";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ColumnSchema, FilterSpec, LeadRow, LeadResponse } from "@/lib/types";
@@ -65,10 +66,6 @@ export function DataTable({
       params.set("amount_sold_min", String(filters.amount_sold_min));
     if (filters.amount_sold_max !== undefined)
       params.set("amount_sold_max", String(filters.amount_sold_max));
-    if (filters.offering_amount_min !== undefined)
-      params.set("offering_amount_min", String(filters.offering_amount_min));
-    if (filters.offering_amount_max !== undefined)
-      params.set("offering_amount_max", String(filters.offering_amount_max));
     if (filters.date_filed_from)
       params.set("date_filed_from", filters.date_filed_from);
     if (filters.date_filed_to)
@@ -102,8 +99,33 @@ export function DataTable({
 
   const tableColumns = useMemo<ColumnDef<LeadRow>[]>(
     () =>
-      schemaColumns.map(
-        (col): ColumnDef<LeadRow> => ({
+      schemaColumns.map((col): ColumnDef<LeadRow> => {
+        if (col.key === "company_name") {
+          return {
+            accessorKey: col.key,
+            header: col.sortable
+              ? () => (
+                  <span className="inline-flex items-center gap-1">
+                    {col.label}
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  </span>
+                )
+              : col.label,
+            cell: ({ row }) => {
+              const acc = row.original.accession_number as string;
+              const ft = row.original.form_type as string;
+              return (
+                <div className="flex items-center gap-1.5 max-w-[260px]">
+                  <span className="font-medium text-sm truncate">{String(row.original.company_name)}</span>
+                  {acc && ft && <SignalBadge accessionNumber={acc} formType={ft} />}
+                </div>
+              );
+            },
+            enableSorting: col.sortable,
+            sortUndefined: "last",
+          };
+        }
+        return {
           accessorKey: col.key,
           header: col.sortable
             ? () => (
@@ -119,8 +141,8 @@ export function DataTable({
           },
           enableSorting: col.sortable,
           sortUndefined: "last",
-        })
-      ),
+        };
+      }),
     [schemaColumns]
   );
 
@@ -134,8 +156,7 @@ export function DataTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: (updater) => {
-      const newSorting =
-        typeof updater === "function" ? updater(sorting) : updater;
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater;
       setSorting(newSorting);
       if (newSorting.length > 0) {
         onSortChange(newSorting[0].id, newSorting[0].desc ? "desc" : "asc");
@@ -175,16 +196,12 @@ export function DataTable({
                     key={header.id}
                     className={cn(
                       "px-3 py-2 text-left text-xs font-medium text-muted-foreground select-none whitespace-nowrap",
-                      header.column.getCanSort() &&
-                        "cursor-pointer hover:text-foreground"
+                      header.column.getCanSort() && "cursor-pointer hover:text-foreground"
                     )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <span className="inline-flex items-center gap-1">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      {flexRender(header.column.columnDef.header, header.getContext())}
                       {{
                         asc: <ChevronUp className="h-3 w-3" />,
                         desc: <ChevronDown className="h-3 w-3" />,
@@ -198,19 +215,13 @@ export function DataTable({
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan={schemaColumns.length}
-                  className="px-3 py-8 text-center text-muted-foreground"
-                >
+                <td colSpan={schemaColumns.length} className="px-3 py-8 text-center text-muted-foreground">
                   Loading...
                 </td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td
-                  colSpan={schemaColumns.length}
-                  className="px-3 py-8 text-center text-muted-foreground"
-                >
+                <td colSpan={schemaColumns.length} className="px-3 py-8 text-center text-muted-foreground">
                   No leads match your filters.
                 </td>
               </tr>
@@ -224,14 +235,8 @@ export function DataTable({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-3 py-2 whitespace-nowrap"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                    <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
@@ -243,25 +248,13 @@ export function DataTable({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Page {page} of {totalPages}
-          </span>
+          <span>Page {page} of {totalPages}</span>
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
               Next
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -272,19 +265,9 @@ export function DataTable({
   );
 }
 
-function CellRenderer({
-  value,
-  column,
-}: {
-  value: unknown;
-  column: ColumnSchema;
-}) {
+function CellRenderer({ value, column }: { value: unknown; column: ColumnSchema }) {
   if (value === null || value === undefined) {
     return <span className="text-muted-foreground italic">—</span>;
-  }
-
-  if (column.key === "company_name") {
-    return <span className="font-medium">{String(value)}</span>;
   }
 
   if (column.format === "currency" && typeof value === "number") {
@@ -296,35 +279,31 @@ function CellRenderer({
   }
 
   if (column.key === "form_type") {
+    const vt = String(value);
     return (
-      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-        {String(value)}
+      <Badge
+        variant={vt === "D/A" ? "secondary" : "outline"}
+        className={
+          vt === "D/A"
+            ? "text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+            : "text-[10px] px-1.5 py-0"
+        }
+      >
+        Form {vt}
       </Badge>
     );
   }
 
   if (column.key === "contact_is_board_level" && value) {
-    return (
-      <Badge variant="warning" className="text-[10px] px-1.5 py-0">
-        Board
-      </Badge>
-    );
+    return <Badge variant="warning" className="text-[10px] px-1.5 py-0">Board</Badge>;
   }
 
   if (column.key === "is_likely_fund" && value) {
-    return (
-      <Badge variant="warning" className="text-[10px] px-1.5 py-0">
-        Fund
-      </Badge>
-    );
+    return <Badge variant="warning" className="text-[10px] px-1.5 py-0">Fund</Badge>;
   }
 
   if (column.key === "is_amendment" && value) {
-    return (
-      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-        Amend
-      </Badge>
-    );
+    return <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Amend</Badge>;
   }
 
   return <span>{String(value)}</span>;
