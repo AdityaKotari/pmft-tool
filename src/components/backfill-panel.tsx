@@ -133,7 +133,7 @@ export function BackfillPanel() {
         onClick={() => setPanelState(panelState === "closed" ? "coverage" : "closed")}
       >
         <Calendar className="h-4 w-4" />
-        Data
+        Date Range
         {coverage && (
           <Badge variant="secondary" className="ml-1 text-[10px] px-1 h-4">
             {coverage.complete_dates}d

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatCurrency } from "@/lib/format";
 import type { SummaryResponse } from "@/lib/types";
 
 export function BackfillSubtitle() {
@@ -23,6 +22,8 @@ export function BackfillSubtitle() {
       {summary.first_date && summary.last_date && (
         <> &middot; {summary.first_date} → {summary.last_date}</>
       )}
+      {" · "}
+      Contacts are officers/directors listed on Form D — not vetted fundraising contacts.
     </p>
   );
 }

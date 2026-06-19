@@ -17,7 +17,7 @@ export const COLUMNS: ColumnSchema[] = [
   },
   {
     key: "industry_group",
-    label: "Industry",
+    label: "SEC Sector",
     type: "enum",
     sortable: true,
     default_visible: true,
