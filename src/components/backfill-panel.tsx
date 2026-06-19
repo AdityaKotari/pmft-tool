@@ -35,6 +35,8 @@ export function BackfillPanel() {
   const [progress, setProgress] = useState<{
     current_date?: string;
     filings_seen?: number;
+    running_total?: number;
+    dates_processed?: number;
   }>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -319,9 +321,14 @@ export function BackfillPanel() {
                         Processing {progress.current_date}
                       </p>
                     )}
-                    {progress.filings_seen !== undefined && (
+                    {progress.running_total !== undefined && (
+                      <p className="text-lg font-semibold tabular-nums">
+                        {progress.running_total.toLocaleString()} filings
+                      </p>
+                    )}
+                    {progress.dates_processed !== undefined && progress.dates_processed > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        {progress.filings_seen} filings found so far
+                        {progress.dates_processed} date{progress.dates_processed !== 1 ? "s" : ""} processed
                       </p>
                     )}
                   </div>

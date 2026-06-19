@@ -12,72 +12,84 @@ export async function GET() {
         if (stopped) return;
 
         try {
-          const latest = db
+          const rows = db
             .prepare(
               `SELECT run_date, status, filings_seen, filings_stored
-               FROM run_log
-               ORDER BY run_date DESC
-               LIMIT 1`
+               FROM run_log ORDER BY run_date`
             )
-            .get() as
-            | {
-                run_date: string;
-                status: string;
-                filings_seen: number;
-                filings_stored: number;
-              }
-            | undefined;
+            .all() as {
+            run_date: string;
+            status: string;
+            filings_seen: number;
+            filings_stored: number;
+          }[];
 
-          if (latest) {
+          if (rows.length === 0) return;
+
+          const latest = rows[rows.length - 1];
+          const runningTotal = rows.reduce(
+            (sum, r) => sum + r.filings_stored,
+            0
+          );
+          const completeCount = rows.filter(
+            (r) => r.status === "complete"
+          ).length;
+
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "progress",
+                current_date: latest.run_date,
+                status: latest.status,
+                filings_seen: latest.filings_seen,
+                filings_stored: latest.filings_stored,
+                running_total: runningTotal,
+                dates_processed: completeCount,
+              })}\n\n`
+            )
+          );
+
+          // Check if process is still alive
+          const fs = require("fs");
+          const path = require("path");
+          const pidFile = path.join(
+            process.cwd(),
+            "data",
+            ".backfill-pid"
+          );
+          let alive = false;
+          try {
+            const pid = fs.readFileSync(pidFile, "utf-8").trim();
+            try {
+              process.kill(Number(pid), 0);
+              alive = true;
+            } catch {
+              // dead
+            }
+          } catch {
+            // no pid file
+          }
+
+          if (!alive && rows.length > 0) {
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({
-                  type: "progress",
-                  current_date: latest.run_date,
-                  status: latest.status,
-                  filings_seen: latest.filings_seen,
-                  filings_stored: latest.filings_stored,
+                  type: "complete",
+                  total_filings: runningTotal,
+                  dates_processed: rows.length,
                 })}\n\n`
               )
             );
-
-            // Check if backfill process is still running
-            const fs = require("fs");
-            const path = require("path");
-            const pidFile = path.join(process.cwd(), "data", ".backfill-pid");
-            let processRunning = false;
-            try {
-              const pid = fs.readFileSync(pidFile, "utf-8").trim();
-              try {
-                process.kill(Number(pid), 0);
-                processRunning = true;
-              } catch {
-                // Process is dead
-              }
-            } catch {
-              // No PID file
-            }
-
-            if (!processRunning) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ type: "complete" })}\n\n`
-                )
-              );
-              controller.close();
-              stopped = true;
-              clearInterval(interval);
-              return;
-            }
+            controller.close();
+            stopped = true;
+            clearInterval(interval);
           }
         } catch {
-          // DB might be locked during writes — skip this tick
+          // DB locked — skip tick
         }
       };
 
       const interval = setInterval(sendProgress, 500);
-
-      // Safety timeout: 30 minutes
       setTimeout(() => {
         stopped = true;
         clearInterval(interval);
