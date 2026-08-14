@@ -6,8 +6,8 @@ track amendments — all from a single SQLite database.
 ## Quick start
 
 ```bash
-git clone https://github.com/username/fundraises-oss
-cd fundraises-oss
+git clone https://github.com/AdityaKotari/pmft-tool
+cd pmft-tool
 
 # 1. Install dependencies
 npm install
@@ -22,6 +22,9 @@ npm run dev
 
 Open **http://localhost:3000**. The onboarding wizard walks you through
 setting your EDGAR identity and running your first backfill.
+
+Prefer no local toolchain? `docker compose up --build` does the same thing —
+see [HOWTORUN](HOWTORUN.md) for Docker, scheduled pulls, and troubleshooting.
 
 ## What it does
 
@@ -116,6 +119,30 @@ cd pipeline && uv run pytest
   needed for contact info
 - A filing proves a capital raise, not hiring or visa sponsorship
 - edgartools is pinned to 5.35.0 (releases frequently, APIs break)
+
+## Contributing
+
+```bash
+npx tsc --noEmit                 # TypeScript
+npm run build                    # Next.js build
+cd pipeline && uv run ruff check && uv run mypy fundscraper/ && uv run pytest
+```
+
+Code layout: `src/app/api/` (REST routes), `src/app/dashboard/` (lead
+browser), `src/components/` (data table, filters, backfill panel),
+`src/lib/` (DB, query builder, schema), `pipeline/fundscraper/` (ingest,
+adapter, filters, analysis, store).
+
+Adding a filterable column: migrate the model
+(`cd pipeline && uv run alembic revision --autogenerate -m "add X"`),
+populate it in `pipeline/fundscraper/adapter.py`, add it to `COLUMNS` in
+`src/lib/schema.ts`, and — if filterable/sortable — to `FILTERABLE_*_COLUMNS`
+in `src/components/filter-panel.tsx` and `ALLOWED_SORT_COLUMNS` in
+`src/lib/query-builder.ts`.
+
+Dependency policy: edgartools is pinned exactly (it ships often and breaks
+APIs); no framework dependencies in Python; flag cost before adding a new
+npm package.
 
 ## License
 

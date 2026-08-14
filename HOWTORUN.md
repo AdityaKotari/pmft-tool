@@ -13,8 +13,8 @@ Step-by-step setup for a fresh machine.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/username/fundraises-oss
-cd fundraises-oss
+git clone https://github.com/AdityaKotari/pmft-tool
+cd pmft-tool
 npm install
 ```
 
@@ -136,12 +136,26 @@ On Linux, use cron:
 
 ## Docker
 
+No Node or Python prerequisites — just Docker with the Compose plugin.
+
 ```bash
-docker compose up
+cp .env.example .env    # then edit EDGAR_IDENTITY with your own name/email
+docker compose up --build
 ```
 
-The SQLite database is persisted on a Docker volume. Set `EDGAR_IDENTITY`
-in your environment or `.env` before starting.
+- The app builds a production image (`next build`) and serves it on :3000.
+- Your backfill data persists in the `fundraises-data` volume — safe across
+  `docker compose up --build` updates and container removals.
+- On first boot the DB is empty, so the onboarding wizard appears. Since
+  `EDGAR_IDENTITY` is already passed via `.env`, you can jump straight to the
+  date-range step.
+- Updating to a new version: `git pull && docker compose up --build`.
+- If you share your instance over a domain, rebuild with
+  `NEXT_PUBLIC_SITE_URL=https://your-domain` so social cards link correctly:
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://your-domain docker compose up --build
+```
 
 ## Troubleshooting
 

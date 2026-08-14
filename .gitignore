@@ -9,6 +9,7 @@
 # next.js
 /.next/
 /out/
+/tsconfig.tsbuildinfo
 
 # production
 /build
@@ -22,7 +23,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files (we commit .env, user overrides with .env.local)
+# local env files (.env holds the user's real EDGAR identity — never commit;
+# .env.example is the committed template)
+.env
 .env.local
 .env.*.local
 
