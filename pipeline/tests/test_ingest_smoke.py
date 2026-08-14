@@ -8,7 +8,7 @@ from datetime import date, timedelta
 import pytest
 
 from fundscraper.config import Config
-from fundscraper.ingest import get_filings_for_date, init_edgar
+from fundscraper.ingest import fetch_form_d, init_edgar
 
 
 def _has_creds() -> bool:
@@ -45,7 +45,7 @@ def test_get_filings_returns_non_empty() -> None:
     target = target - timedelta(days=1)  # one business day lag is normal
 
     date_str = target.isoformat()
-    filings = get_filings_for_date(date_str)
+    filings = fetch_form_d(date_str)
 
     assert len(filings) > 0, (
         f"Expected at least one Form D filing on {date_str}, got 0. "

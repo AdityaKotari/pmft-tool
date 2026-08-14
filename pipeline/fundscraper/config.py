@@ -6,6 +6,38 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Repo root — relative DB paths are resolved against this, not the cwd, so
+# CLI runs from pipeline/ (or anywhere else) always hit the same database.
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def resolve_db_path(raw: str | None) -> Path:
+    """Resolve a FUNDRAISES_DB value against the repo root if relative."""
+    path = Path(raw or "data/fundraises.db")
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def load_env_file(env_path: Path | None = None) -> None:
+    """Load repo-root .env into os.environ — never overriding existing vars.
+
+    Lets the documented flow (edit .env, run `npm run db:backfill`) work
+    without exporting EDGAR_IDENTITY in the shell.
+    """
+    env_path = env_path or REPO_ROOT / ".env"
+    try:
+        content = env_path.read_text()
+    except OSError:
+        return
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
 
 @dataclass
 class Config:
@@ -16,7 +48,7 @@ class Config:
 
     edgar_identity: str = field(default_factory=lambda: os.environ.get("EDGAR_IDENTITY", ""))
     db_path: Path = field(
-        default_factory=lambda: Path(os.environ.get("FUNDRAISES_DB", str(Path(__file__).resolve().parent.parent.parent / "data" / "fundraises.db")))
+        default_factory=lambda: resolve_db_path(os.environ.get("FUNDRAISES_DB"))
     )
     access_mode: str = field(
         default_factory=lambda: os.environ.get("FUNDSCRAPER_ACCESS_MODE", "readonly")

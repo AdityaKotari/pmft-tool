@@ -17,14 +17,18 @@ from fundscraper.pipeline import run_date
 from fundscraper.store import create_engine_for_path
 
 
-def _mock_filing(accession_number: str, form: str = "D") -> MagicMock:
+def _mock_filing(
+    accession_number: str,
+    form: str = "D",
+    filing_date: datetime.date = datetime.date(2026, 6, 2),
+) -> MagicMock:
     """Create a mock edgartools Filing that returns a plausible FormD obj()."""
     filing = MagicMock()
     filing.accession_number = accession_number
     filing.cik = "0001234567"
     filing.company = f"Test Corp {accession_number[-3:]}"
     filing.form = form
-    filing.filing_date = datetime.date(2026, 6, 2)
+    filing.filing_date = filing_date
 
     fd = MagicMock()
     fd.submission_type = form
@@ -121,7 +125,13 @@ def test_backfill_three_day_range(engine: Engine) -> None:
 
     def _filings_for_date(date_str: str) -> list[MagicMock]:
         day = int(date_str[-2:])
-        return [_mock_filing(f"0000000001-26-0000{day:02d}", "D")]
+        return [
+            _mock_filing(
+                f"0000000001-26-0000{day:02d}",
+                "D",
+                filing_date=datetime.date.fromisoformat(date_str),
+            )
+        ]
 
     with (
         patch("fundscraper.pipeline.fetch_form_d", side_effect=_filings_for_date),
@@ -147,4 +157,133 @@ def test_backfill_three_day_range(engine: Engine) -> None:
 
     # 3 unique filings
     assert session.query(Filing).count() == 3
+    session.close()
+
+
+def test_run_date_skips_when_run_log_matches_db(engine: Engine) -> None:
+    """A complete run_log whose stored count matches DB rows skips EDGAR."""
+    session = Session(engine)
+    config = Config(edgar_identity="test@test.com")
+    run_date_obj = datetime.date(2026, 6, 2)
+
+    session.add(
+        Filing(
+            accession_number="0000000001-26-000099",
+            cik="0001234567",
+            company_name="Seed Corp",
+            form_type="D",
+            date_filed=run_date_obj,
+            fetched_at=datetime.datetime.now(datetime.UTC),
+            parse_status="ok",
+        )
+    )
+    session.add(
+        RunLog(
+            run_date=run_date_obj,
+            status="complete",
+            filings_seen=1,
+            filings_stored=1,
+        )
+    )
+    session.commit()
+
+    with (
+        patch("fundscraper.pipeline.fetch_form_d") as mock_fetch,
+        patch("fundscraper.pipeline.init_edgar"),
+    ):
+        result = run_date("2026-06-02", config=config, session=session)
+
+    mock_fetch.assert_not_called()
+    assert result == {"filings_seen": 1, "filings_stored": 1}
+    session.close()
+
+
+def test_run_date_refetches_when_run_log_overcounts(engine: Engine) -> None:
+    """A complete run_log claiming more rows than the DB holds triggers a refetch."""
+    session = Session(engine)
+    config = Config(edgar_identity="test@test.com")
+
+    # No filing rows, but run_log claims 5 stored — must refetch.
+    session.add(
+        RunLog(
+            run_date=datetime.date(2026, 6, 2),
+            status="complete",
+            filings_seen=5,
+            filings_stored=5,
+        )
+    )
+    session.commit()
+
+    mock_filings = [_mock_filing("0000000001-26-000001", "D")]
+
+    with (
+        patch("fundscraper.pipeline.fetch_form_d", return_value=mock_filings) as mock_fetch,
+        patch("fundscraper.pipeline.init_edgar"),
+    ):
+        result = run_date("2026-06-02", config=config, session=session)
+
+    mock_fetch.assert_called_once_with("2026-06-02")
+    assert result["filings_seen"] == 1
+    assert result["filings_stored"] == 1
+
+    run_log = session.get(RunLog, datetime.date(2026, 6, 2))
+    assert run_log is not None
+    assert run_log.status == "complete"
+    assert run_log.filings_stored == 1
+    assert session.query(Filing).count() == 1
+    session.close()
+
+
+def test_run_date_stored_uses_distinct_rows_not_fetch_count(engine: Engine) -> None:
+    """Stored counts come from DB rows, not the fetch count.
+
+    A filing whose own filing_date differs from the index date lands under a
+    different date, so stored rows < fetched rows and the date is partial.
+    """
+    session = Session(engine)
+    config = Config(edgar_identity="test@test.com")
+
+    on_date = _mock_filing("0000000001-26-000001", "D")
+    drift = _mock_filing(
+        "0000000001-26-000002", "D", filing_date=datetime.date(2026, 6, 3)
+    )
+
+    with (
+        patch("fundscraper.pipeline.fetch_form_d", return_value=[on_date, drift]),
+        patch("fundscraper.pipeline.init_edgar"),
+    ):
+        result = run_date("2026-06-02", config=config, session=session)
+
+    assert result["filings_seen"] == 2
+    assert result["filings_stored"] == 1
+    assert session.query(Filing).count() == 2
+
+    run_log = session.get(RunLog, datetime.date(2026, 6, 2))
+    assert run_log is not None
+    assert run_log.status == "partial"
+    assert run_log.filings_stored == 1
+    session.close()
+
+
+def test_run_date_dedupes_duplicate_index_entries(engine: Engine) -> None:
+    """Duplicate accessions in the EDGAR index count once, not twice."""
+    filing = _mock_filing("0000000001-26-000001", "D")
+    session = Session(engine)
+    config = Config(edgar_identity="test@test.com")
+
+    with (
+        patch("fundscraper.pipeline.fetch_form_d", return_value=[filing, filing]),
+        patch("fundscraper.pipeline.init_edgar"),
+    ):
+        result = run_date("2026-06-02", config=config, session=session)
+
+    assert result["filings_seen"] == 1
+    assert result["filings_stored"] == 1
+    assert session.query(Filing).count() == 1
+
+    run_log = session.get(RunLog, datetime.date(2026, 6, 2))
+    assert run_log is not None
+    assert run_log.status == "complete"
+    assert run_log.filings_seen == 1
+    assert run_log.filings_stored == 1
     session.close()

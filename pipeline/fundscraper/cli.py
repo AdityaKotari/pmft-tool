@@ -21,13 +21,19 @@ from fundscraper.analysis import (
     run_summary,
     tier_distribution,
 )
-from fundscraper.config import Config
+from fundscraper.config import Config, load_env_file
 from fundscraper.filters import LeadTier, lead_tier_label
 from fundscraper.pipeline import run_date
 
 app = typer.Typer(no_args_is_help=True)
 leads_app = typer.Typer(no_args_is_help=True)
 app.add_typer(leads_app, name="leads", help="Lead export commands.")
+
+
+@app.callback()
+def _load_dotenv() -> None:
+    """Load repo-root .env (missing vars only) before any command runs."""
+    load_env_file()
 
 
 @app.command()

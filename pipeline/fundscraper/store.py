@@ -46,7 +46,7 @@ def init_db(db_path: Path) -> None:
         return
 
     env = os.environ.copy()
-    env["FUNDSCRAPER_DB"] = str(db_path)
+    env["FUNDRAISES_DB"] = str(db_path)
     subprocess.run(
         ["alembic", "upgrade", "head"],
         cwd=Path(__file__).resolve().parent.parent,

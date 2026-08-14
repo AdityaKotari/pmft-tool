@@ -185,13 +185,8 @@ def _rank_key(row: dict[str, Any]) -> tuple[int, float, str]:
     sold = row.get("total_amount_sold")
     sold_val = 0.0 if sold is None else float(sold)
     if sold_val <= 0:
-        date_str = str(row.get("date_filed", ""))
-        return (1, 0.0, _reverse_date(date_str))
+        return (1, 0.0, str(row.get("date_filed", "")))
     return (0, -sold_val, str(row.get("company_name", "")))
-
-
-def _reverse_date(date_str: str) -> str:
-    return date_str if date_str else ""
 
 
 def export_leads(
@@ -307,7 +302,7 @@ def export_leads_parquet(
 ) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     con.execute(f"COPY ({_LEAD_EXPORT_QUERY}) TO '{output_path}' (FORMAT PARQUET);")
-    result = con.execute("SELECT COUNT(*) FROM fundscraper.filings").fetchone()
+    result = con.execute(f"SELECT COUNT(*) FROM ({_LEAD_EXPORT_QUERY}) AS t").fetchone()
     if result is None:
         return 0
     return int(result[0])

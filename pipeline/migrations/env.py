@@ -8,6 +8,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from fundscraper.config import resolve_db_path
 from fundscraper.models import Base
 
 config = context.config
@@ -17,7 +18,7 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-db_path = os.environ.get("FUNDSCRAPER_DB", "data/fundscraper.db")
+db_path = resolve_db_path(os.environ.get("FUNDRAISES_DB"))
 db_url = f"sqlite+pysqlite:///{db_path}"
 config.set_main_option("sqlalchemy.url", db_url)
 

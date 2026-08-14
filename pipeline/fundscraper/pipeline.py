@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import datetime
 import logging
+from pathlib import Path
 
+from edgar import Filing
 from sqlalchemy.orm import Session
 
 from fundscraper.adapter import (
@@ -26,6 +28,10 @@ from fundscraper.store import (
 )
 
 logger = logging.getLogger(__name__)
+
+# DB paths already migrated in this process. `alembic upgrade head` is
+# idempotent, so it only needs to run once per path — not once per date.
+_db_initialized: set[Path] = set()
 
 
 def run_date(
@@ -59,23 +65,50 @@ def run_date(
     close_session = False
     if session is None:
         engine = create_engine_for_path(config.db_path)
-        init_db(config.db_path)
+        if config.db_path not in _db_initialized:
+            init_db(config.db_path)
+            _db_initialized.add(config.db_path)
         session = Session(engine)
         close_session = True
 
     try:
-        # Check idempotency: skip EDGAR pull if this date is already complete.
+        rows_before = (
+            session.query(FilingModel)
+            .filter(FilingModel.date_filed == run_date_obj)
+            .count()
+        )
+
+        # Check idempotency: skip EDGAR pull if this date is already complete,
+        # but only if run_log's claimed filings_stored matches the rows
+        # actually in the DB — otherwise refetch to backfill the gap.
         existing_run = session.get(RunLog, run_date_obj)
         if existing_run is not None and existing_run.status == "complete":
-            logger.info("Date %s already complete in run_log — skipping EDGAR pull.", date_str)
-            return {
-                "filings_seen": existing_run.filings_seen,
-                "filings_stored": existing_run.filings_stored,
-            }
+            if rows_before == existing_run.filings_stored:
+                logger.info("Date %s already complete in run_log — skipping EDGAR pull.", date_str)
+                return {
+                    "filings_seen": existing_run.filings_seen,
+                    "filings_stored": existing_run.filings_stored,
+                }
+            logger.info(
+                "run_log claims %s filings stored for %s but filings table has %s — refetching.",
+                existing_run.filings_stored,
+                date_str,
+                rows_before,
+            )
 
         filings = fetch_form_d(date_str)
+        # EDGAR indexes occasionally list the same accession twice. Dedupe
+        # before processing so filings_seen matches stored rows and we don't
+        # refetch (or double-parse) duplicate entries.
+        seen_accessions: set[str] = set()
+        unique_filings: list[Filing] = []
+        for filing in filings:
+            accession = str(filing.accession_number)
+            if accession not in seen_accessions:
+                seen_accessions.add(accession)
+                unique_filings.append(filing)
+        filings = unique_filings
         filings_seen = len(filings)
-        filings_stored = 0
 
         for edgar_filing in filings:
             try:
@@ -146,16 +179,23 @@ def run_date(
                     existing_issuer.normalized_name = str(issuer_row["normalized_name"])
                     existing_issuer.last_seen = today
 
-                filings_stored += 1
-
             except Exception:
                 logger.exception("Failed to process filing %s", edgar_filing.accession_number)
                 continue
 
         session.flush()
 
+        # Derive truthful stored counts from the DB, not in-memory counters:
+        # upserts can double-count duplicate index entries without adding rows.
+        rows_after = (
+            session.query(FilingModel)
+            .filter(FilingModel.date_filed == run_date_obj)
+            .count()
+        )
+        filings_stored = rows_after
+        status = "complete" if rows_after == filings_seen else "partial"
+
         # Record run_log
-        status = "complete" if filings_stored == filings_seen else "partial"
         record_run(
             session,
             run_date=run_date_obj,
