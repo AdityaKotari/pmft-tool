@@ -8,8 +8,15 @@ const PIPELINE_DIR = path.join(PROJECT_ROOT, "pipeline");
 const PYTHON_BIN = path.join(PIPELINE_DIR, ".venv", "bin", "python");
 
 function loadEnvFile(): Record<string, string> {
-  const envPath = path.join(PROJECT_ROOT, ".env");
+  // Process env wins — in Docker the identity arrives via `--env-file`/
+  // compose env_file and there is no .env file on disk.
   const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[key] = value;
+  }
+
+  // .env file fills in anything not already set.
+  const envPath = path.join(PROJECT_ROOT, ".env");
   try {
     const content = fs.readFileSync(envPath, "utf-8");
     for (const line of content.split("\n")) {
@@ -25,7 +32,7 @@ function loadEnvFile(): Record<string, string> {
       ) {
         value = value.slice(1, -1);
       }
-      env[key] = value;
+      if (!(key in env)) env[key] = value;
     }
   } catch {
     // .env not found — OK
@@ -46,6 +53,28 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "from and to dates are required" },
       { status: 400 }
+    );
+  }
+
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
+    return NextResponse.json(
+      { error: "dates must be in YYYY-MM-DD format" },
+      { status: 400 }
+    );
+  }
+  if (from > to) {
+    return NextResponse.json(
+      { error: "from date must be on or before to date" },
+      { status: 400 }
+    );
+  }
+
+  // Fail fast with an actionable error instead of a stuck progress spinner.
+  if (!fs.existsSync(PYTHON_BIN)) {
+    return NextResponse.json(
+      { error: "Pipeline venv not found. Run `npm run pipeline:setup` first." },
+      { status: 500 }
     );
   }
 
@@ -85,7 +114,8 @@ export async function POST(req: Request) {
       PATH: process.env.PATH ?? "/usr/bin:/bin:/usr/local/bin",
       HOME: process.env.HOME ?? "",
       FUNDRAISES_DB: dbPath,
-      EDGAR_IDENTITY: dotEnv.EDGAR_IDENTITY ?? "",
+      // docker --env-file/compose pass values with literal quotes — strip them.
+      EDGAR_IDENTITY: (dotEnv.EDGAR_IDENTITY ?? "").replace(/^["']|["']$/g, ""),
       NODE_ENV: process.env.NODE_ENV ?? "development",
     },
     detached: true,
@@ -105,10 +135,17 @@ export async function POST(req: Request) {
 
   child.on("error", (err: Error) => {
     console.error("[backfill spawn error]", err);
+    // Don't leave a stale PID file that blocks future backfills.
+    try {
+      fs.unlinkSync(pidFile);
+    } catch {
+      // Already gone
+    }
   });
 
   child.on("exit", (code: number | null) => {
     console.log(`[backfill] process exited with code ${code}`);
+    logStream.end();
   });
 
   fs.writeFileSync(pidFile, String(child.pid));

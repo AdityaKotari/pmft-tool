@@ -18,6 +18,8 @@ export function getDb(): Database.Database {
   db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
+  // Wait out the Python backfill writer instead of throwing SQLITE_BUSY.
+  db.pragma("busy_timeout = 15000");
 
   return db;
 }
