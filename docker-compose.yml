@@ -1,0 +1,22 @@
+services:
+  fundraises:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    ports:
+      # Override with APP_PORT=3001 if something already runs on 3000
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Explicit so the volume mount below is self-documenting
+      FUNDRAISES_DB: /app/data/fundraises.db
+    volumes:
+      # Each user's backfill persists here — survives container rebuilds
+      - fundraises-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  fundraises-data:
