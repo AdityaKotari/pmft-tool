@@ -17,6 +17,25 @@ interface SignalRow {
 }
 
 const signalCache = new Map<string, SignalRow>();
+// All badges on the page share one fetch instead of firing one per row.
+let amendmentsPromise: Promise<void> | null = null;
+
+function loadSignals(): Promise<void> {
+  if (!amendmentsPromise) {
+    amendmentsPromise = fetch("/api/amendments")
+      .then((r) => r.json())
+      .then((data) => {
+        for (const s of data.signals as SignalRow[]) {
+          signalCache.set(s.accession_number, s);
+        }
+      })
+      .catch(() => {
+        // Allow a retry on the next mount if this request failed.
+        amendmentsPromise = null;
+      });
+  }
+  return amendmentsPromise;
+}
 
 export function SignalBadge({ accessionNumber, formType }: { accessionNumber: string; formType: string }) {
   const [signal, setSignal] = useState<SignalRow | null>(signalCache.get(accessionNumber) ?? null);
@@ -24,19 +43,9 @@ export function SignalBadge({ accessionNumber, formType }: { accessionNumber: st
   useEffect(() => {
     if (signal) return;
 
-    // On first render, fetch signals if not cached
-    fetch("/api/amendments")
-      .then((r) => r.json())
-      .then((data) => {
-        const map = new Map<string, SignalRow>();
-        for (const s of data.signals as SignalRow[]) {
-          map.set(s.accession_number, s);
-        }
-        // Cache all
-        for (const [k, v] of map) signalCache.set(k, v);
-        setSignal(map.get(accessionNumber) ?? null);
-      })
-      .catch(() => {});
+    loadSignals().then(() => {
+      setSignal(signalCache.get(accessionNumber) ?? null);
+    });
   }, [accessionNumber, signal]);
 
   if (!signal) {

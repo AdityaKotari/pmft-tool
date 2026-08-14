@@ -88,6 +88,8 @@ export function BackfillPanel() {
           setLoading(false);
           fetchCoverage();
           setPanelState("coverage");
+          // Let the dashboard refetch summary + leads with the new data.
+          window.dispatchEvent(new Event("backfill-complete"));
         }
       };
       eventSource.onerror = () => {
@@ -95,6 +97,7 @@ export function BackfillPanel() {
         fetchCoverage();
         setPanelState("coverage");
         setLoading(false);
+        window.dispatchEvent(new Event("backfill-complete"));
       };
     } catch (e) {
       setError(String(e));

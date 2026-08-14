@@ -40,12 +40,23 @@ export function DataTable({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const pageSize = filters.page_size ?? 50;
   const totalPages = Math.ceil(total / pageSize);
+
+  // Refetch when a backfill completes so new filings appear without a reload.
+  useEffect(() => {
+    const onBackfillComplete = () => setRetryKey((k) => k + 1);
+    window.addEventListener("backfill-complete", onBackfillComplete);
+    return () => window.removeEventListener("backfill-complete", onBackfillComplete);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
+
+    // Abort in-flight requests when deps change so stale responses can't win a race.
+    const controller = new AbortController();
 
     const params = new URLSearchParams();
     if (filters.industry_groups?.length)
@@ -81,7 +92,7 @@ export function DataTable({
     params.set("page", String(page));
     params.set("page_size", String(pageSize));
 
-    fetch(`/api/leads?${params}`)
+    fetch(`/api/leads?${params}`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -92,10 +103,13 @@ export function DataTable({
         setLoading(false);
       })
       .catch((err: Error) => {
+        if (controller.signal.aborted) return; // superseded by a newer request
         setError(err.message);
         setLoading(false);
       });
-  }, [filters, page, sortBy, sortDir, pageSize]);
+
+    return () => controller.abort();
+  }, [filters, page, sortBy, sortDir, pageSize, retryKey]);
 
   const tableColumns = useMemo<ColumnDef<LeadRow>[]>(
     () =>
@@ -170,8 +184,11 @@ export function DataTable({
 
   if (error) {
     return (
-      <div className="rounded-md border p-8 text-center text-sm text-destructive">
-        Failed to load leads: {error}
+      <div className="rounded-md border p-8 text-center text-sm text-destructive space-y-2">
+        <p>Failed to load leads: {error}</p>
+        <Button variant="outline" size="sm" onClick={() => setRetryKey((k) => k + 1)}>
+          Retry
+        </Button>
       </div>
     );
   }

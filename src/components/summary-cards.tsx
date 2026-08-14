@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { formatCurrency } from "@/lib/format";
+import { useEffect, useState, useCallback } from "react";
+import { formatCurrency, formatDate } from "@/lib/format";
 import type { SummaryResponse } from "@/lib/types";
 
 export function SummaryCards() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
 
-  useEffect(() => {
+  const fetchSummary = useCallback(() => {
     fetch("/api/summary")
       .then((r) => r.json())
       .then(setSummary)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchSummary();
+    // Refresh numbers when a backfill completes.
+    window.addEventListener("backfill-complete", fetchSummary);
+    return () => window.removeEventListener("backfill-complete", fetchSummary);
+  }, [fetchSummary]);
 
   if (!summary || summary.total_filings === 0) return null;
 
@@ -32,7 +39,7 @@ export function SummaryCards() {
         label="Filings Backfilled"
         value={summary.total_filings.toLocaleString()}
         sub={summary.first_date && summary.last_date
-          ? `${summary.first_date} → ${summary.last_date}`
+          ? `${formatDate(summary.first_date)} → ${formatDate(summary.last_date)}`
           : undefined}
       />
       <Card
