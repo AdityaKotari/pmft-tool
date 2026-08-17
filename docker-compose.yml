@@ -14,7 +14,7 @@ services:
       # Explicit so the volume mount below is self-documenting
       FUNDRAISES_DB: /app/data/fundraises.db
     volumes:
-      # Each user's backfill persists here — survives container rebuilds
+      # Each user's backfill persists here; survives container rebuilds
       - fundraises-data:/app/data
     restart: unless-stopped
 

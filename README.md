@@ -1,7 +1,7 @@
 # Private Market Fundraising Signals
 
 Discover companies raising capital from SEC Form D filings. Backfill, filter, and
-track amendments — all from a single SQLite database.
+track amendments, all from a single SQLite database.
 
 ## Quick start
 
@@ -23,15 +23,15 @@ npm run dev
 Open **http://localhost:3000**. The onboarding wizard walks you through
 setting your EDGAR identity and running your first backfill.
 
-Prefer no local toolchain? `docker compose up --build` does the same thing —
-see [HOWTORUN](HOWTORUN.md) for Docker, scheduled pulls, and troubleshooting.
+Prefer no local toolchain? `docker compose up --build` does the same thing.
+See [HOWTORUN](HOWTORUN.md) for Docker, scheduled pulls, and troubleshooting.
 
 ## What it does
 
 - **Pulls SEC Form D filings** (private capital raises) via `edgartools`
 - **Filters out pooled investment funds** (the majority of Form D volume)
   using industry-group flags and entity-name heuristics
-- **Tracks amendments** — detects when companies update their raise
+- **Tracks amendments**: detects when companies update their raise
   amounts, offering targets, or contacts in Form D/A filings
 - **Exports leads** with primary contacts (officers/directors) ranked by
   role seniority
@@ -74,12 +74,12 @@ Backfills are idempotent (dates already in `run_log` are skipped).
 
 ## Filter presets
 
-Filters are named presets — not hardcoded tiers. The default preset is
+Filters are named presets, not hardcoded tiers. The default preset is
 **Technology** (software, infrastructure, telecom). Switch to:
 
-- **Biotech & Pharma** — biotech and pharmaceutical companies
-- **All Operating Companies** — everything except funds/REITs/SPVs
-- **Everything** — no filters, includes investment vehicles
+- **Biotech & Pharma**: biotech and pharmaceutical companies
+- **All Operating Companies**: everything except funds/REITs/SPVs
+- **Everything**: no filters, includes investment vehicles
 
 The filter UI renders dynamically from the `/api/schema` columns, so
 adding new filterable fields requires no UI code changes.
@@ -105,7 +105,7 @@ cd pipeline && uv run pytest
 
 ## Data quality
 
-- **Contacts** are officers/directors listed on Form D — not vetted
+- **Contacts** are officers/directors listed on Form D, not vetted
   fundraising contacts. Form D does not include email or phone.
 - **Amounts** use the latest filing per company. Amendments are tracked
   separately. Pooled investment funds, REITs, and SPVs are excluded
@@ -115,7 +115,7 @@ cd pipeline && uv run pytest
 
 ## Known limits
 
-- Form D gives a person's name + city/state, NO email — enrichment
+- Form D gives a person's name + city/state, NO email; enrichment
   needed for contact info
 - A filing proves a capital raise, not hiring or visa sponsorship
 - edgartools is pinned to 5.35.0 (releases frequently, APIs break)
@@ -136,7 +136,7 @@ adapter, filters, analysis, store).
 Adding a filterable column: migrate the model
 (`cd pipeline && uv run alembic revision --autogenerate -m "add X"`),
 populate it in `pipeline/fundscraper/adapter.py`, add it to `COLUMNS` in
-`src/lib/schema.ts`, and — if filterable/sortable — to `FILTERABLE_*_COLUMNS`
+`src/lib/schema.ts`, and, if filterable/sortable, to `FILTERABLE_*_COLUMNS`
 in `src/components/filter-panel.tsx` and `ALLOWED_SORT_COLUMNS` in
 `src/lib/query-builder.ts`.
 

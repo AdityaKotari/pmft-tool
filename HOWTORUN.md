@@ -4,9 +4,9 @@ Step-by-step setup for a fresh machine.
 
 ## Prerequisites
 
-- **Node.js 22+** — https://nodejs.org
-- **Python 3.12+** — https://python.org
-- **uv** (Python package manager) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **Node.js 22+**: https://nodejs.org
+- **Python 3.12+**: https://python.org
+- **uv** (Python package manager): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ## Setup
 
@@ -60,9 +60,9 @@ Open **http://localhost:3000** in your browser.
 
 The first time you open the app, you'll see a 3-step onboarding wizard:
 
-1. **EDGAR Identity** — confirm your name and email
-2. **Date range** — pick how far back to pull filings (we recommend 30 days to start)
-3. **Progress** — watch the backfill run. It takes ~2 minutes for 30 days of data.
+1. **EDGAR Identity**: confirm your name and email
+2. **Date range**: pick how far back to pull filings (we recommend 30 days to start)
+3. **Progress**: watch the backfill run. It takes ~2 minutes for 30 days of data.
 
 The backfill is **kill-safe.** If you close the tab or restart the server,
 re-running the backfill skips dates already completed.
@@ -71,9 +71,9 @@ re-running the backfill skips dates already completed.
 
 Click **Date Range** in the top-right corner of the dashboard. The panel shows:
 
-- **Coverage** — which dates have been pulled, any gaps
-- **Quick actions** — Today, Last 7 days, Last 30 days
-- **Custom range** — pick any from/to dates
+- **Coverage**: which dates have been pulled, any gaps
+- **Quick actions**: Today, Last 7 days, Last 30 days
+- **Custom range**: pick any from/to dates
 
 Click "Fill gaps" to automatically backfill any missing dates.
 
@@ -136,7 +136,7 @@ On Linux, use cron:
 
 ## Docker
 
-No Node or Python prerequisites — just Docker with the Compose plugin.
+No Node or Python prerequisites; just Docker with the Compose plugin.
 
 ```bash
 cp .env.example .env    # then edit EDGAR_IDENTITY with your own name/email
@@ -144,7 +144,7 @@ docker compose up --build
 ```
 
 - The app builds a production image (`next build`) and serves it on :3000.
-- Your backfill data persists in the `fundraises-data` volume — safe across
+- Your backfill data persists in the `fundraises-data` volume, safe across
   `docker compose up --build` updates and container removals.
 - On first boot the DB is empty, so the onboarding wizard appears. Since
   `EDGAR_IDENTITY` is already passed via `.env`, you can jump straight to the
@@ -167,7 +167,7 @@ Set it in `.env` or export it. The format is `"Name email@example.com"`.
 
 - Check if SEC EDGAR is accessible: https://www.sec.gov/cgi-bin/browse-edgar
 - Weekends and holidays have fewer (or zero) filings
-- The backfill is idempotent — re-running is safe
+- The backfill is idempotent, so re-running is safe
 
 ### Database locked errors
 

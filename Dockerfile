@@ -11,20 +11,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 WORKDIR /app
 
-# OG metadata domain baked at build time — override with
+# OG metadata domain baked at build time; override with
 # `docker compose build --build-arg NEXT_PUBLIC_SITE_URL=https://...`
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
-# Node deps first (better-sqlite3 ships prebuilt binaries) — layer-cache friendly
+# Node deps first (better-sqlite3 ships prebuilt binaries); layer-cache friendly
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Python pipeline venv — standalone Python 3.12 managed by uv
+# Python pipeline venv: standalone Python 3.12 managed by uv
 COPY pipeline/pyproject.toml pipeline/
 RUN cd pipeline && uv sync --python 3.12 --no-dev
 
-# alembic must be on PATH — the pipeline spawns `alembic upgrade head`
+# alembic must be on PATH: the pipeline spawns `alembic upgrade head`
 ENV PATH="/app/pipeline/.venv/bin:${PATH}"
 
 # App source + production build
